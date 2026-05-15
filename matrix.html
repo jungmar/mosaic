@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosaic Generator</title>
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./icons/icon-192.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .matrix-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(9, 80px);
+            grid-template-rows: repeat(9, 80px);
+            gap: 8px;
+            border: 3px solid #333;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            transform: rotate(var(--tile-rotation, 0deg));
+            font-size: 0.7em;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.1);
+        }
+
+        .square.hide-labels {
+            font-size: 0;
+        }
+
+        .square:hover {
+            transform: rotate(var(--tile-rotation, 0deg)) scale(1.05);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-1 {
+            background-color: var(--color-1, #FFB3D9);
+        }
+
+        .color-2 {
+            background-color: var(--color-2, #DDA0DD);
+        }
+
+        .color-3 {
+            background-color: var(--color-3, #FF1493);
+        }
+
+        .color-4 {
+            background-color: var(--color-4, #7FFFD4);
+        }
+
+        .color-5 {
+            background-color: var(--color-5, #0E6F7F);
+        }
+
+        .color-6 {
+            background-color: var(--color-6, #ffe0e0);
+        }
+
+        .color-7 {
+            background-color: var(--color-7, #8cbfac);
+        }
+
+        .color-8 {
+            background-color: var(--color-8, #466b5a);
+        }
+
+        .palette-preview {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .paint-panel {
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .fill-btn {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.95em;
+            font-weight: 600;
+            color: #333;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .fill-btn:hover,
+        .fill-btn:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+            outline: none;
+        }
+
+        .storage-panel {
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .storage-panel input,
+        .storage-panel select,
+        .storage-panel button {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.95em;
+            background: white;
+        }
+
+        .storage-panel input {
+            min-width: 200px;
+        }
+
+        .storage-panel select {
+            min-width: 220px;
+        }
+
+        .storage-panel button {
+            cursor: pointer;
+            font-weight: 600;
+            color: #333;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .storage-panel button:hover,
+        .storage-panel input:focus,
+        .storage-panel select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+            outline: none;
+        }
+
+        .preview-color {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .preview-color:hover {
+            transform: translateY(-2px);
+        }
+
+        .preview-color.active {
+            border-color: #333;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 20px;
+            }
+
+            .matrix {
+                grid-template-columns: repeat(9, 60px);
+                grid-template-rows: repeat(9, 60px);
+                border-width: 2px;
+                gap: 6px;
+            }
+
+            .square {
+                font-size: 0.6em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.4em;
+            }
+
+            .matrix {
+                grid-template-columns: repeat(9, 45px);
+                grid-template-rows: repeat(9, 45px);
+                gap: 4px;
+            }
+
+            .preview-color {
+                width: 35px;
+                height: 35px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Matrix Generator</h1>
+
+        <div class="matrix-container">
+            <div class="matrix" id="matrix"></div>
+        </div>
+
+        <div class="palette-preview">
+            <div class="preview-color color-1" id="preview-color1"></div>
+            <div class="preview-color color-2" id="preview-color2"></div>
+            <div class="preview-color color-3" id="preview-color3"></div>
+            <div class="preview-color color-4" id="preview-color4"></div>
+            <div class="preview-color color-5" id="preview-color5"></div>
+            <div class="preview-color color-6" id="preview-color6"></div>
+            <div class="preview-color color-7" id="preview-color7"></div>
+            <div class="preview-color color-8" id="preview-color8"></div>
+        </div>
+
+        <div class="paint-panel">
+            <label>Farbe aus der Palette wählen und in die Matrix klicken</label>
+            <button id="fill-matrix-btn" class="fill-btn" type="button">Füllen</button>
+        </div>
+
+        <div class="storage-panel">
+            <input type="text" id="matrix-name" placeholder="Name für Matrix eingeben">
+            <button id="save-matrix-btn" type="button">Matrix speichern</button>
+            <select id="matrix-load-select">
+                <option value="">Gespeicherte Matrix laden...</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        let selectedPaintColor = '#d2b5e8';
+        let selectedPaintIndex = 2;
+        const matrixStorageKey = 'savedMatricesByName';
+
+        // Alle verfügbaren Farben
+        const allColors = {
+            color1: '#add8e6',
+            color2: '#b3e0d0',
+            color3: '#a9b9c9',
+            color4: '#d2b5e8',
+            color5: '#c7b5e8',
+            color6: '#ffe0e0',
+            color7: '#8cbfac',
+            color8: '#466b5a'
+        };
+        const defaultPalette = [
+            allColors.color1,
+            allColors.color2,
+            allColors.color3,
+            allColors.color4,
+            allColors.color5,
+            allColors.color6,
+            allColors.color7,
+            allColors.color8
+        ];
+        const defaultPattern = 'checkerboard';
+
+        // Muster-Funktionen - jetzt mit 5 Farben
+        const patterns = {
+            // 2-Farben Muster (Rückwärtskompatibilität)
+            checkerboard: (row, col) => (row + col) % 2 === 0 ? 'color-1' : 'color-2',
+            diagonal: (row, col) => (row + col) % 2 === 0 ? 'color-1' : 'color-2',
+            concentric: (row, col) => {
+                const center = 4;
+                const distance = Math.max(Math.abs(row - center), Math.abs(col - center));
+                return distance % 2 === 0 ? 'color-1' : 'color-2';
+            },
+            // 5-Farben Muster
+            'all-five': (row, col) => {
+                const colorIndex = (row + col) % 5;
+                return `color-${colorIndex + 1}`;
+            },
+            'wave': (row, col) => {
+                const colorIndex = (row + Math.floor(col / 2)) % 5;
+                return `color-${colorIndex + 1}`;
+            }
+        };
+
+        // Initialisiere die Matrix
+        function initializeMatrix() {
+            const matrix = document.getElementById('matrix');
+            matrix.innerHTML = '';
+
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'square';
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+                    const randomRotation = (Math.random() * 6 - 3).toFixed(2);
+                    square.style.setProperty('--tile-rotation', `${randomRotation}deg`);
+                    matrix.appendChild(square);
+                }
+            }
+
+            applyPattern();
+
+            matrix.addEventListener('click', (event) => {
+                const square = event.target.closest('.square');
+                if (!square) return;
+
+                square.classList.remove('color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7', 'color-8');
+                square.style.backgroundColor = selectedPaintColor;
+            });
+        }
+
+        // Wende Muster auf Matrix an
+        function applyPattern() {
+            const patternFunction = patterns[defaultPattern];
+            const squares = document.querySelectorAll('.square');
+
+            squares.forEach(square => {
+                const row = parseInt(square.dataset.row);
+                const col = parseInt(square.dataset.col);
+                const colorClass = patternFunction(row, col);
+
+                // Entferne alle Farben
+                square.classList.remove('color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7', 'color-8');
+                square.style.backgroundColor = '';
+                // Füge neue Farbe hinzu
+                square.classList.add(colorClass);
+            });
+        }
+
+        function setSelectedPaintColor(index) {
+            const validIndex = Math.min(defaultPalette.length - 1, Math.max(0, index));
+            const selectedPreview = document.getElementById(`preview-color${validIndex + 1}`);
+            if (!selectedPreview) return;
+
+            selectedPaintIndex = validIndex;
+            selectedPaintColor = getComputedStyle(selectedPreview).backgroundColor;
+
+            document.querySelectorAll('.preview-color').forEach((preview) => {
+                preview.classList.remove('active');
+            });
+            selectedPreview.classList.add('active');
+
+            localStorage.setItem('paintColorIndex', String(validIndex));
+        }
+
+        function setupPalettePreviewPicker() {
+            const savedIndex = parseInt(localStorage.getItem('paintColorIndex') || '2', 10);
+            selectedPaintIndex = Number.isNaN(savedIndex) ? 2 : savedIndex;
+
+            document.querySelectorAll('.preview-color').forEach((preview, index) => {
+                preview.addEventListener('click', () => {
+                    setSelectedPaintColor(index);
+                });
+            });
+        }
+
+        function fillMatrixWithSelectedColor() {
+            const squares = document.querySelectorAll('.square');
+            squares.forEach((square) => {
+                square.classList.remove('color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7', 'color-8');
+                square.style.backgroundColor = selectedPaintColor;
+            });
+        }
+
+        function setupFillButton() {
+            const fillButton = document.getElementById('fill-matrix-btn');
+            fillButton.addEventListener('click', () => {
+                fillMatrixWithSelectedColor();
+            });
+        }
+
+        function readSavedMatrices() {
+            const raw = localStorage.getItem(matrixStorageKey);
+            if (!raw) return {};
+
+            try {
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch {
+                return {};
+            }
+        }
+
+        function writeSavedMatrices(matrices) {
+            localStorage.setItem(matrixStorageKey, JSON.stringify(matrices));
+        }
+
+        function getCurrentMatrixState() {
+            const squares = Array.from(document.querySelectorAll('.square'));
+            return squares.map((square) => getComputedStyle(square).backgroundColor);
+        }
+
+        function applyMatrixState(state) {
+            if (!Array.isArray(state) || state.length !== 81) return;
+
+            const squares = document.querySelectorAll('.square');
+            squares.forEach((square, index) => {
+                square.classList.remove('color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7', 'color-8');
+                square.style.backgroundColor = state[index];
+            });
+        }
+
+        function refreshSavedMatricesSelect() {
+            const select = document.getElementById('matrix-load-select');
+            const saved = readSavedMatrices();
+            const names = Object.keys(saved).sort((a, b) => a.localeCompare(b, 'de'));
+
+            select.innerHTML = '<option value="">Gespeicherte Matrix laden...</option>';
+            names.forEach((name) => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+
+        function setupMatrixStorageControls() {
+            const nameInput = document.getElementById('matrix-name');
+            const saveBtn = document.getElementById('save-matrix-btn');
+            const loadSelect = document.getElementById('matrix-load-select');
+
+            saveBtn.addEventListener('click', () => {
+                const name = nameInput.value.trim();
+                if (!name) {
+                    nameInput.focus();
+                    return;
+                }
+
+                const saved = readSavedMatrices();
+                saved[name] = getCurrentMatrixState();
+                writeSavedMatrices(saved);
+                refreshSavedMatricesSelect();
+                loadSelect.value = name;
+                nameInput.value = '';
+            });
+
+            loadSelect.addEventListener('change', (event) => {
+                const selectedName = event.target.value;
+                if (!selectedName) return;
+
+                const saved = readSavedMatrices();
+                const state = saved[selectedName];
+                if (!state) return;
+                applyMatrixState(state);
+            });
+
+            refreshSavedMatricesSelect();
+        }
+
+        // Aktualisiere Farbpalette
+        function updatePalette(colors) {
+            
+            // Setze alle Farben der Palette
+            for (let i = 0; i < colors.length; i++) {
+                document.documentElement.style.setProperty(`--color-${i + 1}`, colors[i]);
+            }
+
+            // Aktualisiere Preview-Farben
+            for (let i = 0; i < colors.length; i++) {
+                const previewElement = document.getElementById(`preview-color${i + 1}`);
+                if (previewElement) {
+                    previewElement.style.backgroundColor = colors[i];
+                }
+            }
+
+            setSelectedPaintColor(selectedPaintIndex);
+        }
+
+        // Initialisierung beim Laden
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeMatrix();
+            setupPalettePreviewPicker();
+            setupFillButton();
+            setupMatrixStorageControls();
+            updatePalette(defaultPalette);
+            applyPattern();
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch((error) => {
+                    console.error('Service Worker Registrierung fehlgeschlagen:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
